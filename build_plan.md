@@ -1,7 +1,3 @@
-Nice — here’s a tight, **actionable 4-week sprint plan** for **Project 1 — Code Fluency Sprint (CLI + Tests)** that will force you to read, debug and ship code until tracebacks feel like plain English. Every day is an experiment: small, measurable, repeatable. I kept it practical — commands, exercises, failure scenarios to practice, and a debugging checklist you’ll actually use in interviews.
-
----
-
 # Sprint overview (4 weeks)
 
 Goal: Build a small CLI that fetches data from a public API, writes CSV, and is covered by unit + integration tests. Add logging, CI, and a `self-debug` command that surfaces failing tests and suggests fixes.
@@ -230,12 +226,3 @@ Fri: Retrospective + interview lines
 * Run linters: `pre-commit run --all-files`
 * Create venv: `python -m venv .venv && source .venv/bin/activate`
 * Run CI locally (act) — optional
-
----
-
-If you want, I’ll:
-
-* produce the exact starter repo skeleton + `cli.py` and test templates, OR
-* write the exact `--self-debug` implementation snippet and the mapping table for common errors.
-
-Which one should I build next for you?
