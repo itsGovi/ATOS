@@ -1,0 +1,185 @@
+# ========================================
+# ATOS - Requirements File
+# Python 3.10+
+# ========================================
+
+# ----------------------------------------
+# Core LLM & Agent Framework
+# ----------------------------------------
+# Ollama Python client for local LLM inference
+ollama>=0.3.0
+
+# LangChain core - foundational LLM abstractions
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.20
+
+# LangGraph - state machine for agent reasoning loops
+langgraph>=0.0.40
+
+# LangSmith - tracing and observability for LangChain
+langsmith>=0.1.0
+
+# ----------------------------------------
+# API & Web Framework (MCP Tool Servers)
+# ----------------------------------------
+# FastAPI - high-performance async API framework
+fastapi>=0.109.0
+
+# Uvicorn - ASGI server for FastAPI
+uvicorn[standard]>=0.27.0
+
+# Pydantic - data validation and settings management
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Requests - HTTP client for n8n webhook communication
+requests>=2.31.0
+
+# HTTPX - async HTTP client (alternative to requests)
+httpx>=0.26.0
+
+# ----------------------------------------
+# Data Processing & Validation
+# ----------------------------------------
+# PyYAML - config file parsing (models.yaml, agents.yaml)
+pyyaml>=6.0.1
+
+# Python-dotenv - environment variable management
+python-dotenv>=1.0.0
+
+# Pydantic types for enhanced validation
+pydantic-core>=2.14.0
+
+# ----------------------------------------
+# Testing & Code Execution
+# ----------------------------------------
+# Pytest - testing framework for self-debugging loops
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+
+# Pytest JSON report - machine-readable test results
+pytest-json-report>=1.5.0
+
+# AST manipulation - code analysis for validation
+ast-comments>=1.1.0
+
+# Black - code formatter (for generated code)
+black>=24.0.0
+
+# Ruff - fast Python linter
+ruff>=0.1.0
+
+# ----------------------------------------
+# System Monitoring & Resource Management
+# ----------------------------------------
+# psutil - system and process utilities (RAM tracking)
+psutil>=5.9.0
+
+# GPUtil - GPU monitoring (VRAM usage)
+gputil>=1.4.0
+
+# nvidia-ml-py3 - NVIDIA management library
+nvidia-ml-py>=12.535.133
+
+# ----------------------------------------
+# Observability & Logging
+# ----------------------------------------
+# WandB - experiment tracking and metrics
+wandb>=0.16.0
+
+# Rich - beautiful terminal output
+rich>=13.7.0
+
+# Loguru - better logging than stdlib
+loguru>=0.7.2
+
+# ----------------------------------------
+# Async & Concurrency
+# ----------------------------------------
+# Asyncio utilities
+aiofiles>=23.2.1
+
+# Async HTTP requests
+aiohttp>=3.9.0
+
+# ----------------------------------------
+# Data Structures & Utilities
+# ----------------------------------------
+# Tenacity - retry logic with exponential backoff
+tenacity>=8.2.3
+
+# Typing extensions - enhanced type hints
+typing-extensions>=4.9.0
+
+# ----------------------------------------
+# CLI & User Interface
+# ----------------------------------------
+# Click - CLI framework
+click>=8.1.7
+
+# Typer - modern CLI with type hints (alternative to Click)
+typer>=0.9.0
+
+# Colorama - cross-platform colored terminal text
+colorama>=0.4.6
+
+# Prompt-toolkit - interactive CLI
+prompt-toolkit>=3.0.43
+
+# ----------------------------------------
+# Development & Debugging Tools
+# ----------------------------------------
+# IPython - enhanced Python REPL
+ipython>=8.20.0
+
+# IPdb - IPython debugger
+ipdb>=0.13.13
+
+# Jupyter - interactive notebooks (for experimentation)
+jupyter>=1.0.0
+
+# ----------------------------------------
+# Code Quality & Type Checking
+# ----------------------------------------
+# MyPy - static type checker
+mypy>=1.8.0
+
+# Pre-commit - git hooks for code quality
+pre-commit>=3.6.0
+
+# ----------------------------------------
+# Optional: Advanced Features
+# ----------------------------------------
+# Transformers - for BERT novelty scoring (future: Polymathic Engine)
+transformers>=4.36.0
+torch>=2.1.0
+
+# ArangoDB Python driver (future: knowledge graph)
+python-arango>=7.9.0
+
+# Sentence-transformers - embeddings (future feature)
+sentence-transformers>=2.3.0
+
+# ----------------------------------------
+# Security & Environment
+# ----------------------------------------
+# Cryptography - secure credential storage
+cryptography>=42.0.0
+
+# ----------------------------------------
+# Documentation Generation
+# ----------------------------------------
+# MkDocs - static site generator for docs
+mkdocs>=1.5.3
+mkdocs-material>=9.5.3
+
+# ----------------------------------------
+# Performance Profiling (Development)
+# ----------------------------------------
+# Py-spy - sampling profiler
+py-spy>=0.3.14
+
+# Memory-profiler - track memory usage
+memory-profiler>=0.61.0
