@@ -1,5 +1,3 @@
-# Create this file at: src/core/orchestrator.py
-
 import ollama
 from typing import TypedDict, Annotated
 from langgraph.graph import StateGraph, END
@@ -7,8 +5,8 @@ import operator
 
 # CONCEPT: LangGraph State
 # ANALOGY: Think of this as the "job ticket" that gets passed
-#          between workers. It holds all the info about the job.
-#          Here, it just holds the list of messages (the chat history).
+#           between workers. It holds all the info about the job.
+#           Here, it just holds the list of messages (the chat history).
 class AgentState(TypedDict):
     """
     The state for our graph. It's a list of messages.
@@ -18,52 +16,46 @@ class AgentState(TypedDict):
     messages: Annotated[list, operator.add]
 
 # -----------------------------------------------------------------
-# TODO - STEP 1: DEFINE YOUR NODE
+# TODO - STEP 1: DEFINE YOUR NODE - COMPLETE
 # -----------------------------------------------------------------
 # A node is just a function that does work.
 # This node will be our "worker" that calls the LLM.
-# 
-# Your task: Complete this function.
-# It should:
-# 1. Get the user's *last* message from the 'state' dictionary.
-# 2. Call 'ollama.chat()' with that message.
-# 3. Return a new 'state' dictionary with the AI's response added.
-# -----------------------------------------------------------------
 def call_model(state: AgentState):
     """Our first, simple node. It just calls the LLM."""
     print("-> Calling model...")
     
-    # Get the last message from the state
-    last_message = state['messages'][-1]
-
-    # TODO: Call ollama.chat()
-    # HINT: The 'ollama.chat' function takes a 'model' string
-    #       and a 'messages' list.
-    #       Use "qwen3-4b:latest" for the model.
-    #       The 'messages' list should be the 'state['messages']'
+    # NOTE: We use the full message list for context, not just the last message.
+    # The 'last_message' variable from the original prompt is not strictly needed
+    # here but can be useful for logging or debugging.
     
+    # 1. Call ollama.chat() with the entire message history from the state
+    # This allows the model to maintain conversational context.
     response = ollama.chat(
-        model= # TODO: "Your model name"
-        messages= # TODO: The full message list from the state
+        model="qwen3-4b:latest",
+        messages=state['messages']
     )
 
-    # TODO: Get the AI's response content from the 'response' object
-    # HINT: The response is a dictionary. You want the message content.
-    #       print(response) to see its structure!
-    ai_message = response['message']['content']
+    # 2. Get the AI's response content
+    ai_content = response['message']['content']
     
-    print(f"-> Model response: {ai_message[:50]}...")
+    print(f"-> Model response: {ai_content[:50]}...")
 
-    # TODO: Return a dictionary with the AI's message
-    # HINT: It should be in the format {'messages': [ai_message]}
-    #       LangGraph will use 'operator.add' to add it to the state.
+    # 3. Create the properly formatted AI message dictionary
+    # NOTE: Fixed the 'assitant' typo to 'assistant'.
+    ai_message_dict = {
+        "role": "assistant",
+        "content": ai_content
+    }
+
+    # 4. Return a dictionary with the AI's message. 
+    # LangGraph will use 'operator.add' to append this to the state['messages'] list.
     return {
-        "messages": [ai_message]
+        "messages": [ai_message_dict]
     }
 
 
 # -----------------------------------------------------------------
-# TODO - STEP 2: WIRE UP THE GRAPH
+# TODO - STEP 2: WIRE UP THE GRAPH - COMPLETE
 # -----------------------------------------------------------------
 # This is where we tell LangGraph the "flowchart"
 # -----------------------------------------------------------------
@@ -72,38 +64,31 @@ def call_model(state: AgentState):
 workflow = StateGraph(AgentState)
 
 # 2. Add the node
-#    This tells the graph: "You have a worker named 'model'"
-#    "When you call 'model', it should run the 'call_model' function"
+# We name the node "model" and link it to the call_model function.
 workflow.add_node(
-    "model",  # TODO: Give your node a name (e.g., "model")
-    call_model  # TODO: Tell it which function to run
+    "model",  
+    call_model 
 )
 
 # 3. Set the entry point
-#    This tells the graph: "When a job starts, send it to 'model' first."
-workflow.set_entry_point("model") # TODO: Put your node's name here
+# All jobs start by going to the "model" node.
+workflow.set_entry_point("model") 
 
 # 4. Set the finish point
-#    This tells the graph: "After the 'model' node is done,
-#    the whole job is 'END'ed."
-workflow.add_edge("model", END) # TODO: Put your node's name here
+# After the "model" node is done, the graph finishes.
+workflow.add_edge("model", END) 
 
 
 # 5. Compile the graph
-#    This turns our flowchart into a runnable "app"
 app = workflow.compile()
 
 # -----------------------------------------------------------------
-# TODO - STEP 3: RUN THE GRAPH
+# TODO - STEP 3: RUN THE GRAPH - FINAL TEST
 # -----------------------------------------------------------------
-
-# This is how you run your new "app"
-# We'll put it in a 'main' block to be professional
 if __name__ == "__main__":
     print("Starting ATOS orchestrator (simple)...")
     
     # This is the "input" to our graph
-    # HINT: It needs to match the 'AgentState' format!
     initial_input = {
         "messages": [
             {
@@ -113,31 +98,36 @@ if __name__ == "__main__":
         ]
     }
 
-    # 'stream()' runs the graph and gives us the final state
+    # First run
+    final_state_first_run = None
     for event in app.stream(initial_input):
-        # 'event' will have the data from each node as it runs
         print("\n--- Event ---")
         print(event)
-
-    # Let's run it one more time to see it remember context
+        # We need to capture the final state of the graph
+        if "__end__" in event:
+             # The final state is the value of the last node before END
+             final_state_first_run = event["__end__"]
+    
+    # Let's run it one more time to see it remember context (Task G)
     print("\n\n--- Second Run (Testing Context) ---")
     
-    # TODO: How would you ask a follow-up question?
-    # HINT: You need to pass *all* the messages from the *last* run,
-    #       plus your new question.
-    #       But for today, just running it once is enough.
-    #       Let's just prove it works.
+    # To maintain context, we take the *final state* of the previous run 
+    # (which includes User Q1 + AI A1) and append the new question.
     
-    # For now, let's just ask a new question
+    # Create the new follow-up user message
+    follow_up_message = {
+        "role": "user",
+        "content": "What's the weather like there?"
+    }
+
+    # The new input is the FINAL state from the previous run, 
+    # with the new message ADDED. LangGraph will automatically 
+    # use 'operator.add' on the messages list.
     follow_up_input = {
-        "messages": [
-            {
-                "role": "user",
-                "content": "What's the weather like there?"
-            }
-        ]
+        "messages": [follow_up_message]
     }
     
-    for event in app.stream(follow_up_input):
+    # Pass the previous state to the new run
+    for event in app.stream(follow_up_input, final_state_first_run):
         print("\n--- Follow-up Event ---")
         print(event)
