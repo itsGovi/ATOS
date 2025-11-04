@@ -15,40 +15,24 @@ class AgentState(TypedDict):
     """
     messages: Annotated[list, operator.add]
 
-# -----------------------------------------------------------------
-# TODO - STEP 1: DEFINE YOUR NODE - COMPLETE
-# -----------------------------------------------------------------
-# A node is just a function that does work.
-# This node will be our "worker" that calls the LLM.
 def call_model(state: AgentState):
     """Our first, simple node. It just calls the LLM."""
     print("-> Calling model...")
-    
-    # NOTE: We use the full message list for context, not just the last message.
-    # The 'last_message' variable from the original prompt is not strictly needed
-    # here but can be useful for logging or debugging.
-    
-    # 1. Call ollama.chat() with the entire message history from the state
-    # This allows the model to maintain conversational context.
+
     response = ollama.chat(
         model="qwen3-4b:latest",
         messages=state['messages']
     )
 
-    # 2. Get the AI's response content
     ai_content = response['message']['content']
     
     print(f"-> Model response: {ai_content[:50]}...")
 
-    # 3. Create the properly formatted AI message dictionary
-    # NOTE: Fixed the 'assitant' typo to 'assistant'.
     ai_message_dict = {
         "role": "assistant",
         "content": ai_content
     }
 
-    # 4. Return a dictionary with the AI's message. 
-    # LangGraph will use 'operator.add' to append this to the state['messages'] list.
     return {
         "messages": [ai_message_dict]
     }
