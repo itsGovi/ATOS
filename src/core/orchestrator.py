@@ -3,98 +3,95 @@ from typing import TypedDict, Annotated
 from langgraph.graph import StateGraph, END
 import operator
 
+# --- AGENT STATE DEFINITION ---
 class AgentState(TypedDict):
-    """
-    The extended state for our graph, supporting context management (summary)
-    and conversational flow (step count).
-    """
-    # 1. RAW CHAT HISTORY (Policy: Append)
+    """The extended state for our orchestrator."""
     messages: Annotated[list, operator.add]
-    
-    # 2. CONDENSED HISTORY (Policy: Replace)
-    # This stores the output of the summarizer model.
     summary_context: str
-    
-    # 3. CONVERSATION COUNTER (Policy: Increment)
-    # Tracks the number of user/agent turns for summarization trigger.
     step_count: Annotated[int, operator.add]
-    
-    # 4. CHAT IDENTIFIER (Policy: Replace)
-    # Used for naming the chat file/log.
     chat_id: str
 
 # -----------------------------------------------------------------
-# TODO - STEP 1A: DEFINE THE ROUTER NODE (The Quality Control Gate)
+# TODO - STEP 1A: DEFINE THE ROUTER NODE (The Conditional Edge)
 # -----------------------------------------------------------------
-# This node will check the step_count and decide the next path.
 def route_to_summary(state: AgentState) -> str:
     """
     Decides whether to summarize or call the main model based on step_count.
-    Must return the name of the NEXT node (a string).
+    Must return one of: "summarize", "call_model", or END.
     """
-    print(f"-> Router: Current Step Count: {state['step_count']}")
-    
-    # TODO: Implement the conditional logic for summarization.
-    # If the step_count is the 5th step, route to the summarizer.
-    # Otherwise, route to the main model node.
-    if state["step_count"] % 5 == 0: # Replace False with your count logic
-        create_summary = 
-        step_count = 0
+    # NOTE: The check should be for steps >= 5 to trigger *after* the 5th user turn.
+    # The check for divisibility by 5 uses the modulo operator: % 5 == 0
+    if state['step_count'] % 5 == 0 and state['step_count'] > 0:
+        return "summarize"
     else:
-        return call_model
+        return "call_model"
 
 
 # -----------------------------------------------------------------
 # TODO - STEP 1B: DEFINE THE SUMMARIZATION NODE (The 4B Worker)
 # -----------------------------------------------------------------
-# This node uses the raw messages to generate a short context summary.
 def summarize_conversation(state: AgentState) -> dict:
     """
     Generates a condensed summary of the current conversation history.
+    This node also handles the step_count reset for the next cycle.
     """
     print("-> Summarizer: Generating new summary...")
 
-    # TODO: Formulate a prompt for the 4B model to summarize the history.
-    # The 'messages' list is available in the state.
-    
-    # HINT: You will need to make an ollama.chat() call here, using a smaller model 
-    # and the full 'messages' list.
+    # TODO: Define the prompt for the summarizer model. 
+    # HINT: Use the full raw messages list (state['messages']). The prompt 
+    # should instruct the LLM to provide a brief, actionable summary for context.
+    summarization_prompt = [
+        {"role": "system", "content": "You are a concise summarization expert. Condense the following chat history into a single, short paragraph that retains all key facts and instructions."},
+        # TODO: Add the full message history here to be summarized
+        *state['messages'] 
+    ]
     
     # TODO: Call Ollama with the summarization prompt
     summary_response = ollama.chat(
-        model="qwen3-4b:latest", # Use the fast, local model
-        messages=state['messages'] # Pass the full history for summarization
+        model="qwen3-4b:latest", 
+        messages=summarization_prompt
     )
     
     # TODO: Extract the new summary content
-    new_summary = "A Placeholder Summary."
+    new_summary = summary_response['message']['content']
     
-    # NOTE: The summarizer only updates the 'summary_context'. 
-    # It does NOT add a message to the raw 'messages' list.
+    # Calculate the reset value: Subtract the current count to set it back to 0.
+    reset_count = -state['step_count']
+    
+    print(f"-> Summarizer: New Summary '{new_summary[:30]}...' | Resetting counter by {reset_count}")
+    
+    # The node updates the summary and resets the counter for the next 5-turn cycle.
     return {
         "summary_context": new_summary,
-        # IMPORTANT: The summarization itself counts as a step in the process.
-        "step_count": 1 # Use operator.add to increment the count
+        "step_count": reset_count # operator.add makes 5 + (-5) = 0
     }
 
 
 # -----------------------------------------------------------------
 # TODO - STEP 1C: UPDATE THE CALL_MODEL NODE (The 7B Worker)
 # -----------------------------------------------------------------
-# This node now needs to USE the 'summary_context' for efficiency.
 def call_model(state: AgentState):
     """
-    Our main model node. It reads the summary_context and the latest message.
+    The main model node. It reads the summary_context and the latest message.
     """
     print("-> Calling model...")
     
-    # TODO: Build the final list of messages to send to the 7B model.
-    # HINT: The list should contain:
-    # 1. A SYSTEM message using the 'summary_context'.
-    # 2. The most recent user message (the last message in the 'messages' list).
-    
-    # For now, we will use the full history as a placeholder
-    llm_input_messages = state['messages']
+    # TODO: Build the optimal list of messages to send to the 7B model for efficiency.
+    # HINT: Only send the summary and the *latest* user message, 
+    # NOT the full raw history, to save VRAM and latency.
+    llm_input_messages = []
+
+    # 1. Add the condensed summary as the top-level context (if it exists)
+    if state.get("summary_context"):
+        llm_input_messages.append({
+            "role": "system",
+            "content": f"PREVIOUS CONTEXT: {state['summary_context']}\n---\n"
+        })
+        # 2. Add ONLY the last raw user message for the current query
+        llm_input_messages.append(state['messages'][-1])
+    else:
+        # If no summary exists (first 5 turns), use the full history for context
+        llm_input_messages.extend(state['messages'])
 
     response = ollama.chat(
         model="qwen3-4b:latest",
@@ -109,7 +106,7 @@ def call_model(state: AgentState):
         "content": ai_content
     }
 
-    # The node MUST return the message and the step increment.
+    # The node returns the message and the step increment.
     return {
         "messages": [ai_message_dict],
         "step_count": 1 # Increment the counter after the AI replies
@@ -117,75 +114,97 @@ def call_model(state: AgentState):
 
 
 # -----------------------------------------------------------------
-# TODO - STEP 2: WIRE UP THE GRAPH (The Flowchart Manager)
+# STEP 2: WIRE UP THE GRAPH (The Flowchart Manager)
 # -----------------------------------------------------------------
-# The new flow: ENTRY -> router -> (summarize | call_model) -> END
-# -----------------------------------------------------------------
-
-# 1. Define the graph
 workflow = StateGraph(AgentState)
 
-# 2. Add the nodes
-# TODO: Add the three required nodes to the workflow object.
+# Add the three required nodes
 workflow.add_node("router", route_to_summary) 
 workflow.add_node("summarize", summarize_conversation)
 workflow.add_node("call_model", call_model)
 
-# 3. Set the entry point (It must be the router!)
+# Set the entry point to the router
 workflow.set_entry_point("router")
 
-# 4. Set the conditional edge from the router
-# The router must define the path based on its string output.
-# The keys here MUST match the strings returned by route_to_summary()
+# Set the conditional edge from the router
 workflow.add_conditional_edges(
-    "router",          # Start node name
-    route_to_summary,  # The function to run (LangGraph can optionally run it here too)
+    "router",          
+    route_to_summary,  
     {
-        # Map the output string to the next node name
-        "summarize": "summarize", 
-        "call_model": "call_model",
-        END: END # If you want the router to sometimes end the graph
+        "summarize": "summarize", # If router returns "summarize", go here
+        "call_model": "call_model", # If router returns "call_model", go here
     }
 )
 
-# 5. Set the edges from the worker nodes back to the END
-# TODO: Add an edge from 'summarize' to 'call_model' so it answers the user after summarization.
+# Set the edges from the worker nodes back to the END
+# CRITICAL: After summarization, we must still go to the model to answer the user!
 workflow.add_edge("summarize", "call_model") 
 workflow.add_edge("call_model", END) 
 
 
-# 6. Compile the graph
+# Compile the graph
 app = workflow.compile()
 
 # -----------------------------------------------------------------
-# TODO - STEP 3: RUN THE GRAPH (Test the Counter and Router)
+# STEP 3: RUN THE GRAPH (Test the Conditional Logic)
 # -----------------------------------------------------------------
 
 if __name__ == "__main__":
     print("Starting ATOS orchestrator (conditional)...")
     
-    # INITIAL INPUT: Must include the new state keys
+    # Run 1: Start Conversation (Step 1)
+    # The router should send this to "call_model"
     initial_input = {
         "messages": [
             {
                 "role": "user",
-                "content": "Start conversation. What is the capital of France?"
+                "content": "Turn 1: What is the capital of France?"
             }
         ],
-        # TODO: Provide starting values for the new state keys
-        "summary_context": "",
+        "summary_context": "The chat has just started.",
         "step_count": 1, 
         "chat_id": "initial-context-test-001" 
     }
 
-    print("\n--- Running 1st Conversation Turn (Should skip summarization) ---")
-    final_state_run_1 = None
+    print("\n--- RUN 1 (Step 1 -> call_model) ---")
+    final_state = initial_input
     for event in app.stream(initial_input):
-        print(event)
+        if event.get("call_model"):
+            print(f"-> Model Node Ran. Next: {event.get('call_model')}")
         if "__end__" in event:
-             final_state_run_1 = event["__end__"]
-    print(f"\nFINAL STATE: Step Count = {final_state_run_1['step_count']}")
+             final_state = event["__end__"]
     
-    # TODO: Run the graph 4 more times (by passing the final state and new input)
-    # to hit the 'summarize' condition on the 5th run. 
-    # Remember to capture the final state of each run to pass to the next!
+    
+    # Run 4 more times to hit step_count = 5 (the summarization trigger)
+    # We will simulate the next 4 user turns by passing the state forward.
+    for i in range(2, 6): # This loop simulates Turns 2, 3, 4, 5
+        print(f"\n--- RUN {i} (Step {final_state['step_count'] + 1}) ---")
+        
+        # New input: only the new message and the step increment
+        new_input = {
+            "messages": [
+                {"role": "user", "content": f"Turn {i}: Another question to build up history."}
+            ],
+            "step_count": 1 
+        }
+        
+        current_state = final_state
+        final_state = None
+        
+        # Check if we should hit summarization on this turn (i.e., if current_state['step_count'] + 1 == 5)
+        # Note: The router *receives* the state, including the new 'step_count': 1 from new_input 
+        # that LangGraph adds to the existing count.
+        
+        # Run the graph
+        for event in app.stream(new_input, current_state):
+             if event.get("summarize"):
+                 print("✅ ROUTER HIT SUMMARIZE NODE!")
+             elif event.get("call_model"):
+                 print("-> Router Hit Call Model Node")
+             
+             if "__end__" in event:
+                 final_state = event["__end__"]
+
+    print(f"\n--- END OF SIMULATION ---")
+    print(f"✅ FINAL STEP COUNT: {final_state['step_count']} (Expected 1 or 5, depending on the last action)")
+    print(f"✅ FINAL SUMMARY: {final_state['summary_context']}")
