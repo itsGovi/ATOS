@@ -19,8 +19,7 @@ def route_to_summary(state: AgentState) -> str:
     Decides whether to summarize or call the main model based on step_count.
     Must return one of: "summarize", "call_model", or END.
     """
-    # NOTE: The check should be for steps >= 5 to trigger *after* the 5th user turn.
-    # The check for divisibility by 5 uses the modulo operator: % 5 == 0
+
     if state['step_count'] % 5 == 0 and state['step_count'] > 0:
         return "summarize"
     else:
