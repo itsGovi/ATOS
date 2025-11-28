@@ -1,0 +1,505 @@
+# 🕴️**ATOS — Autonomous Task Orchestration System**
+
+*A lightweight, API-powered, multi-agent orchestration framework for real product development.*
+
+![Status](https://img.shields.io/badge/status-in_development-yellow)
+![Python](https://img.shields.io/badge/python-3.10+-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+---
+
+# 🧭 **What is ATOS?**
+
+ATOS is an **autonomous task orchestration system** built to simulate how real-world AI products work:
+
+* A main **Orchestrator agent** supervises tasks
+* A **Coder agent** handles code generation & improvements
+* A **Small agent** executes quick, narrow subtasks
+* All agents call **external LLM APIs** (OpenAI, Anthropic, Google, etc)
+* The system coordinates them with a clean architecture, modular components, and future extensibility
+
+This project teaches you *every discipline required to build actual AI software products*:
+
+* Architecture
+* Backend
+* API design
+* Agent design & routing
+* Cloud & deployment fundamentals
+* Logging & analytics
+* Product thinking
+* Collaboration patterns
+
+ATOS is not just code — it is a **full product-building curriculum disguised as a project**.
+
+---
+
+# 📌 **Why This Project Exists**
+
+To build ATOS is to learn:
+
+### ✔ Product thinking
+
+How ideas translate into features, tasks, priorities, and tradeoffs.
+
+### ✔ Agentic systems
+
+How orchestrators, workers, and models coordinate through structured prompts and APIs.
+
+### ✔ Real backend engineering
+
+Building a modular architecture, routing tasks, managing API calls, configs, logs, failures.
+
+### ✔ Architecture literacy
+
+How systems interact, how modules depend on each other, how to scale, how to organize code.
+
+### ✔ ML systems design
+
+Model selection, retries, fallbacks, cost/latency optimization.
+
+### ✔ Cloud basics
+
+Docker, deployment, environment variables, server structure.
+
+### ✔ Documentation discipline
+
+A README that acts as your map and your memory.
+
+ATOS is a **learning environment**, a **portfolio project**, and a **production blueprint**.
+
+---
+
+# 🧠 **High-Level System Idea**
+
+ATOS consists of **three agents**:
+
+| Agent            | Purpose                                          | Example Models                           |
+| ---------------- | ------------------------------------------------ | ---------------------------------------- |
+| **Orchestrator** | Decomposes tasks, decides what happens next      | GPT-4.1-mini, Claude Haiku, Gemini Flash |
+| **Coder Agent**  | Writes or improves code                          | Claude Sonnet, GPT-4.1, Qwen Coder       |
+| **Small Agent**  | Quick reasoning tasks, formatting, summarization | Gemini Flash, GPT-4o-mini                |
+
+Everything is **API-powered**.
+No local models, no VRAM limits, no heavy setup.
+
+---
+
+# 🏛️ **Architecture Overview**
+
+```
+                          ┌───────────────────────────────────┐
+                          │               USER                 │
+                          │   "Build me X / Summarize Y"       │
+                          └───────────────────────────────────┘
+                                           │
+                                           ▼
+                     ┌───────────────────────────────────────────┐
+                     │            ORCHESTRATOR AGENT             │
+                     │  - Analyzes user input                     │
+                     │  - Decomposes into subtasks               │
+                     │  - Chooses which agent to call            │
+                     │  - Merges / evaluates responses            │
+                     └───────────────────────────────────────────┘
+                                           │
+                                           ▼
+        ┌──────────────────────┬────────────────────────┬────────────────────────┐
+        ▼                      ▼                        ▼
+┌────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
+│  SMALL AGENT   │   │      CODER AGENT     │   │   FUTURE AGENTS...   │
+│ - quick tasks  │   │ - code gen/improve   │   │ - tools, memory      │
+│ - formatting   │   │ - debugging ideas    │   │ - worker bots        │
+└────────────────┘   └──────────────────────┘   └──────────────────────┘
+        │                      │                        │
+        └──────────────────────┴────────────────────────┘
+                                           ▼
+                       ┌──────────────────────────────────┐
+                       │        ORCHESTRATOR MERGES       │
+                       │  - combine results               │
+                       │  - post-process                  │
+                       │  - return final output           │
+                       └──────────────────────────────────┘
+                                           ▼
+                                 ┌──────────────────┐
+                                 │    FINAL RESULT   │
+                                 └──────────────────┘
+```
+
+---
+
+# 🌐 **API Call Flow (Detailed Diagram)**
+
+```
+User → Orchestrator → Model API → Orchestrator → Agent → Model API → Orchestrator → Output
+```
+
+In full detail:
+
+```
+1. User sends request
+2. Orchestrator:
+   • parses goal
+   • decides tasks
+   • selects agent
+   • prepares prompt
+
+3. Orchestrator calls the model via API client
+4. Response returned to Orchestrator
+5. If needed:
+   • Orchestrator delegates to Coder Agent or Small Agent
+   • Agents call their own APIs
+
+6. Agents return responses back to Orchestrator
+7. Orchestrator merges & finalizes answer
+8. User receives structured output
+```
+
+---
+
+# 🔍 **Detailed Walkthrough (End-to-End Example)**
+
+### **User Input**
+
+> “Write me a Python script that fetches weather data.”
+
+### **Step 1 — Orchestrator**
+
+* Detects: coding task
+* Decomposes:
+
+  * Determine API
+  * Generate script
+  * Provide usage instructions
+
+### **Step 2 — Orchestrator decides**
+
+* Coding → Send main task to **Coder Agent**
+* Instructions → Send to **Small Agent**
+
+### **Step 3 — Coder Agent**
+
+Calls Anthropic or OpenAI model to generate Python script.
+
+### **Step 4 — Small Agent**
+
+Writes short instructions.
+
+### **Step 5 — Orchestrator merges**
+
+Combines script + explanation into one final output.
+
+---
+
+# 📁 **Project Structure (New API-Powered Version)**
+
+```
+atos/
+  README.md
+  main.py
+
+  /agents
+    orchestrator.py
+    coder.py
+    small_agent.py
+
+  /core
+    router.py           # Routes tasks to agents
+    task_manager.py     # Task breakdown, merging, tracking
+
+  /configs
+    models.yaml         # Model providers + API keys
+    prompts.yaml        # Prompt templates
+
+  /services
+    api_client.py       # Unified API client for OpenAI/Anthropic/Gemini
+
+  /utils
+    logger.py
+    formatting.py
+    types.py
+```
+
+---
+
+# 🔑 **API Keys & Model Config**
+
+ATOS uses **three separate API keys**:
+
+```yaml
+orchestrator:
+  provider: "openai"
+  model: "gpt-4.1-mini"
+  api_key: "..."
+
+coder:
+  provider: "anthropic"
+  model: "claude-3.7-sonnet"
+  api_key: "..."
+
+small_agent:
+  provider: "google"
+  model: "gemini-2.0-flash"
+  api_key: "..."
+```
+
+Replacing your model is as simple as editing this YAML.
+
+---
+
+# 🎓 **Learning Goals (Updated)**
+
+ATOS teaches:
+
+### ■ Product Thinking
+
+scoping → prioritizing → defining MVP → iterative improvement
+
+### ■ Backend
+
+APIs, configs, architecture, modular design
+
+### ■ Agent Engineering
+
+prompt design, routing logic, decisions, delegation patterns
+
+### ■ DevOps (foundational)
+
+Docker → envs → logging → minimal deployment
+
+### ■ Cloud & Deployment
+
+how to host APIs & orchestrators
+
+### ■ ML Systems Design
+
+model selection → cost/latency → fallbacks → tool usage
+
+### ■ Analytics & Experimentation
+
+logging → metrics → error analysis → improving agents
+
+---
+
+# 🛠️ **Features**
+
+* Multiple agents, multiple roles
+* API-driven architecture
+* Configurable routing logic
+* Modular prompts
+* Adding new agents is extremely easy
+* Logging + debugging primitives
+* Extensible for UI, memory, vector DBs, tools, cron tasks
+
+---
+
+# 🔧 **How It Actually Works (Key Components)**
+
+## 1. Orchestrator (`agents/orchestrator.py`)
+
+* central brain
+* decomposes tasks
+* calls correct agent
+* merges outputs
+* ensures quality & consistency
+
+## 2. Coder Agent (`agents/coder.py`)
+
+* specialized code generator
+* can critique, improve, refactor
+
+## 3. Small Agent (`agents/small_agent.py`)
+
+* fast helper
+* basic reasoning
+* formatting
+* summarization
+
+## 4. Router (`core/router.py`)
+
+* where to send which task
+* defines routing rules
+
+## 5. API Client (`services/api_client.py`)
+
+* unified interface for:
+
+  * OpenAI API
+  * Anthropic API
+  * Gemini API
+* handles:
+
+  * headers
+  * retries
+  * error handling
+
+---
+
+# 🧩 **Architecture Diagram: Modules & Data Flow**
+
+```
+                        ┌────────────────────────┐
+                        │       main.py          │
+                        └───────────┬────────────┘
+                                    │
+                                    ▼
+                    ┌───────────────────────────────────┐
+                    │        Orchestrator Agent         │
+                    │ - task parsing                    │
+                    │ - decomposition                   │
+                    │ - routing                         │
+                    └───────────────────────────────────┘
+                                    │
+                        ┌───────────┼────────────┬──────────────┐
+                        │           │            │              │
+                        ▼           ▼            ▼              ▼
+           ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
+           │ Small Agent    │ │ Coder Agent    │ │ Future Agent   │
+           │ quick tasks    │ │ code tasks     │ │ tools/memory   │
+           └────────────────┘ └────────────────┘ └────────────────┘
+                        │           │            │
+                        └───────┬───┴────────────┘
+                                ▼
+                    ┌──────────────────────────┐
+                    │     API Client Layer      │
+                    │  openai / anthropic / g   │
+                    └──────────────────────────┘
+                                ▼
+                    ┌──────────────────────────┐
+                    │      Model APIs          │
+                    └──────────────────────────┘
+```
+
+---
+
+# 🧪 **Tracer Bullet Test (Minimal Working Demo)**
+
+```bash
+python main.py "Write me a Python function to sort a list"
+```
+
+Expected:
+
+```
+[Orchestrator] Task detected: coding
+[Coder Agent] calling Claude Sonnet...
+[Small Agent] formatting...
+[Orchestrator] Merging responses...
+Done!
+```
+
+---
+
+# 📅 **Development Roadmap (Your Guide When Lost)**
+
+## **PHASE 1 — Foundation**
+
+✔ Set up repo
+✔ Implement API client
+⬜ Implement Orchestrator skeleton
+⬜ Implement Small Agent
+⬜ Implement Coder Agent
+⬜ Hardcode routing rules
+⬜ Tracer bullet run #1
+
+**Checkpoint:**
+Single prompt → Orchestrator → Agent → Model API → Returned successfully
+
+---
+
+## **PHASE 2 — Core Multi-Agent Logic**
+
+⬜ Decomposition logic
+⬜ Task Manager
+⬜ Router rules
+⬜ Error handling
+⬜ Logging system
+
+**Checkpoint:**
+Orchestrator can delegate to multiple agents in one run
+
+---
+
+## **PHASE 3 — Prompt Engineering Layer**
+
+⬜ prompts.yaml
+⬜ structured outputs
+⬜ retries & fallbacks
+⬜ model swapping
+
+---
+
+## **PHASE 4 — Extendability**
+
+⬜ Add memory module
+⬜ Add tool plugins
+⬜ Add file I/O or code execution sandbox
+⬜ Add analytics logger
+
+---
+
+## **PHASE 5 — UI / Deployment**
+
+⬜ Basic FastAPI server wrapper
+⬜ Web dashboard
+⬜ Dockerfile
+⬜ Deploy on Render / Lightsail
+
+---
+
+# 🧭 **Where You Are Now**
+
+You are currently in:
+
+### ✔ Phase 1: Foundation
+
+You have a structure, vision, and goals.
+Next actionable steps:
+
+1. Implement `/services/api_client.py`
+2. Implement `/agents/orchestrator.py` with:
+
+   * simple routing
+   * simple decomposition
+3. Write a minimal tracer bullet in `main.py`
+
+Once that works: move to Phase 2.
+
+---
+
+# 🧠 **Did You Miss Something? (Checklist to Review Weekly)**
+
+### Architecture
+
+* [ ] Do I understand data flow?
+* [ ] Do I understand how the Orchestrator chooses agents?
+* [ ] Are configs separated from code?
+
+### Code
+
+* [ ] Do agents have isolated logic?
+* [ ] Does API client abstract provider differences?
+* [ ] Is routing deterministic and logged?
+
+### Product
+
+* [ ] Does each feature have a justification?
+* [ ] Am I building MVP-first or overbuilding?
+
+### Learning
+
+* [ ] Did I document what I learned?
+* [ ] Do I understand why decisions were made?
+* [ ] Did I simplify instead of complicate?
+
+---
+
+# 🧘 Final Thoughts
+
+ATOS is your **sandbox**, your **teacher**, and your **portfolio anchor**.
+
+When you’re confused, tired, lost, or overwhelmed:
+**Return to this README. Everything you need is here.**
+
+You are not just coding —
+you are learning to think like a **product engineer**, **architect**, and **AI systems designer**.
+
+Now go build. 🚀
